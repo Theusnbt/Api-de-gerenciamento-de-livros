@@ -338,13 +338,15 @@ Body:
 
 ```json
 {
-    "titulo":"Clean Code",
-    "autor":"Robert C. Martin",
-    "genero":"Programação",
-    "ano":2008,
-    "paginas":464,
-    "lido":false,
-    "nota":10
+  "title": "Clean Code",
+  "author": "Robert C. Martin",
+  "description": "Um guia de boas práticas para escrita de código limpo e manutenível",
+  "bookGenre": "Programação",
+  "year": 2008,
+  "totalPages": 464,
+  "readPages": 464,
+  "read": "true",
+  "score": 10
 }
 ```
 
