@@ -1,79 +1,283 @@
 # 📚 API de Gerenciamento de Livros
 
-Uma API REST desenvolvida com **Node.js**, **Express** e **MongoDB** para realizar o gerenciamento de livros. O projeto permite criar, consultar, atualizar e remover livros de forma simples.
+![Node.js](https://img.shields.io/badge/Node.js-22.x-green)
+![Express](https://img.shields.io/badge/Express-5.x-black)
+![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-green)
+![License](https://img.shields.io/badge/license-ISC-blue)
 
-## Tecnologias
+API REST desenvolvida com **Node.js**, **Express** e **MongoDB** para gerenciamento de livros.
 
-- Node.js
-- Express
-- MongoDB
-- Mongoose
+Cada usuário possui sua própria coleção de livros. Antes de cadastrar um livro, é necessário criar um usuário. Todas as operações envolvendo livros são realizadas utilizando o identificador do usuário.
 
-## Funcionalidades
+---
 
-- Cadastrar um livro
-- Listar todos os livros
-- Buscar um livro por ID
-- Atualizar informações de um livro
-- Remover um livro
+# Sumário
 
-## Estrutura do Livro
+- Tecnologias
+- Pré-requisitos
+- Instalação
+- Variáveis de ambiente
+- Executando o projeto
+- Estrutura do projeto
+- Modelos de dados
+- Fluxo de utilização
+- Rotas — Usuários
+- Rotas — Livros
+- Códigos de resposta
 
-```json
-{
-  "titulo": "Clean Code",
-  "autor": "Robert C. Martin",
-  "genero": "Programação",
-  "ano": 2008,
-  "paginas": 464,
-  "lido": true,
-  "nota": 10
-}
-```
+---
 
-## Rotas
+# Tecnologias
 
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| GET | `/books` | Lista todos os livros |
-| GET | `/books/:id` | Busca um livro por ID |
-| POST | `/books` | Cadastra um novo livro |
-| PUT | `/books/:id` | Atualiza um livro |
-| DELETE | `/books/:id` | Remove um livro |
+| Camada | Tecnologia |
+|---------|------------|
+| Runtime | Node.js |
+| Framework | Express |
+| Banco de Dados | MongoDB |
+| ODM | Mongoose |
+| Validação | Validator |
+| Configuração | Dotenv |
+| Desenvolvimento | Nodemon |
 
-## Instalação
+---
 
-Clone o repositório:
+# Pré-requisitos
+
+- Node.js 18+
+- npm
+- MongoDB Atlas ou MongoDB local
+
+---
+
+# Instalação
 
 ```bash
 git clone <url-do-repositorio>
-```
 
-Acesse a pasta do projeto:
+cd APIdeLivros
 
-```bash
-cd nome-do-projeto
-```
-
-Instale as dependências:
-
-```bash
 npm install
 ```
 
-Crie um arquivo `.env` com a variável de conexão:
+---
+
+# Variáveis de ambiente
+
+Crie um arquivo `.env` na raiz do projeto.
 
 ```env
 MONGODB_URI=sua_string_de_conexao
-PORT=3000
+PORT=3939
 ```
 
-Inicie a aplicação:
+| Variável | Descrição |
+|----------|-----------|
+| MONGODB_URI | String de conexão com o MongoDB |
+| PORT | Porta da aplicação |
+
+---
+
+# Executando o projeto
 
 ```bash
 npm run start:dev
 ```
 
+Servidor iniciado na porta **3939**.
+
+---
+
+# Estrutura do projeto
+
+```
+APIdeLivros/
+│
+├── src/
+│   ├── database/
+│   │   └── db.js
+│   │
+│   ├── features/
+│   │   ├── user/
+│   │   │   ├── user.controller.js
+│   │   │   ├── user.model.js
+│   │   │   └── user.route.js
+│   │   │
+│   │   └── book/
+│   │       ├── book.controller.js
+│   │       ├── book.model.js
+│   │       └── book.route.js
+│   │
+│   ├── utils/
+│   │   └── safeUser.js
+│   │
+│   ├── app.js
+│   ├── index.js
+│   └── index.route.js
+```
+
+---
+
+# Modelos de dados
+
+## Usuário
+
+| Campo | Tipo | Obrigatório |
+|--------|------|-------------|
+| firstName | String | Sim |
+| lastName | String | Sim |
+| email | String | Sim |
+| password | String | Sim |
+
+Exemplo:
+
+```json
+{
+    "firstName":"Matheus",
+    "lastName":"Nascimento",
+    "email":"matheus@email.com",
+    "password":"12345678"
+}
+```
+
+---
+
+## Livro
+
+| Campo | Tipo | Obrigatório |
+|--------|------|-------------|
+| titulo | String | Sim |
+| autor | String | Sim |
+| genero | String | Sim |
+| ano | Number | Sim |
+| paginas | Number | Sim |
+| lido | Boolean | Não |
+| nota | Number | Não |
+| userId | ObjectId | Sim |
+
+Exemplo:
+
+```json
+{
+    "titulo":"Clean Code",
+    "autor":"Robert C. Martin",
+    "genero":"Programação",
+    "ano":2008,
+    "paginas":464,
+    "lido":true,
+    "nota":10
+}
+```
+
+---
+
+# Fluxo de utilização
+
+A utilização da API segue os seguintes passos:
+
+1. Criar um usuário.
+2. Salvar o **ID** retornado.
+3. Utilizar esse ID para cadastrar livros.
+4. Consultar, atualizar ou remover apenas os livros pertencentes ao usuário.
+
+---
+
+# Rotas — Usuários
+
+Base URL:
+
+```
+/api/user
+```
+
+| Método | Rota | Descrição |
+|---------|------|-----------|
+| POST | / | Cria um usuário |
+| GET | /:id | Busca um usuário |
+| PATCH | /:id | Atualiza um usuário |
+| DELETE | /:id | Remove um usuário |
+
+### POST /api/user
+
+```json
+{
+    "firstName":"Matheus",
+    "lastName":"Nascimento",
+    "email":"matheus@email.com",
+    "password":"12345678"
+}
+```
+
+Resposta:
+
+```json
+{
+    "message":"Usuário criado",
+    "user":{
+        "_id":"...",
+        "firstName":"Matheus",
+        "lastName":"Nascimento",
+        "email":"matheus@email.com"
+    }
+}
+```
+
+---
+
+# Rotas — Livros
+
+Base URL:
+
+```
+/api/book
+```
+
+| Método | Rota | Descrição |
+|---------|------|-----------|
+| POST | /:userId | Cadastra um livro |
+| GET | /:userId | Lista os livros do usuário |
+| GET | /:userId/:bookId | Busca um livro |
+| PATCH | /:userId/:bookId | Atualiza um livro |
+| DELETE | /:userId/:bookId | Remove um livro |
+
+### POST /api/book/:userId
+
+```json
+{
+    "titulo":"Clean Code",
+    "autor":"Robert C. Martin",
+    "genero":"Programação",
+    "ano":2008,
+    "paginas":464,
+    "lido":false,
+    "nota":10
+}
+```
+
+Resposta:
+
+```json
+{
+    "message":"Livro criado",
+    "book":{
+        ...
+    }
+}
+```
+
+---
+
+# Códigos de resposta
+
+| Código | Significado |
+|---------|-------------|
+| 200 | Sucesso |
+| 201 | Recurso criado |
+| 400 | Dados inválidos |
+| 404 | Recurso não encontrado |
+| 500 | Erro interno do servidor |
+
+---
+
 ## Autor
 
-Desenvolvido para fins de estudo utilizando Node.js, Express e MongoDB.
+Projeto desenvolvido para fins de estudo utilizando **Node.js**, **Express** e **MongoDB**.
