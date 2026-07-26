@@ -3,11 +3,11 @@
 ![Node.js](https://img.shields.io/badge/Node.js-22.x-green)
 ![Express](https://img.shields.io/badge/Express-5.x-black)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-green)
-![License](https://img.shields.io/badge/license-ISC-blue)
+![JWT](https://img.shields.io/badge/Auth-JWT-orange)
 
 API REST desenvolvida com **Node.js**, **Express** e **MongoDB** para gerenciamento de livros.
 
-Cada usuário possui sua própria coleção de livros. Antes de cadastrar um livro, é necessário criar um usuário. Todas as operações envolvendo livros são realizadas utilizando o identificador do usuário.
+Cada usuário possui sua própria coleção de livros. Antes de cadastrar um livro, é necessário criar um usuário e fazer login. A partir do login, um **token JWT** é utilizado para autenticar e autorizar todas as operações envolvendo livros — garantindo que cada usuário só acesse os próprios dados.
 
 ---
 
@@ -21,9 +21,8 @@ Cada usuário possui sua própria coleção de livros. Antes de cadastrar um liv
 - [Estrutura do projeto](#estrutura-do-projeto)
 - [Modelos de dados](#modelos-de-dados)
 - [Autenticação](#autenticação)
-- [Rotas — Usuários](#rotas--usuários-users)
-- [Rotas — Tarefas](#rotas--tarefas-tarefas)
-- [Rotas — Administração](#rotas--administração-adm)
+- [Rotas — Usuários](#rotas--usuários)
+- [Rotas — Livros](#rotas--livros)
 - [Formato de erros de validação](#formato-de-erros-de-validação)
 - [Códigos de resposta](#códigos-de-resposta)
 - [Licença](#licença)
@@ -38,6 +37,8 @@ Cada usuário possui sua própria coleção de livros. Antes de cadastrar um liv
 | Framework | Express |
 | Banco de Dados | MongoDB |
 | ODM | Mongoose |
+| Autenticação | JSON Web Token (jsonwebtoken) |
+| Hash de senha | bcryptjs |
 | Validação | Validator |
 | Configuração | Dotenv |
 | Desenvolvimento | Nodemon |
@@ -62,6 +63,12 @@ cd APIdeLivros
 npm install
 ```
 
+### Dependências de autenticação
+
+```bash
+npm install jsonwebtoken bcryptjs
+```
+
 ---
 
 # Variáveis de ambiente
@@ -71,12 +78,16 @@ Crie um arquivo `.env` na raiz do projeto.
 ```env
 MONGODB_URI=sua_string_de_conexao
 PORT=3939
+JWT_SECRET=sua_chave_secreta
+JWT_EXPIRES_IN=7d
 ```
 
 | Variável | Descrição |
 |----------|-----------|
 | MONGODB_URI | String de conexão com o MongoDB |
 | PORT | Porta da aplicação |
+| JWT_SECRET | Chave secreta usada para assinar e validar os tokens JWT |
+| JWT_EXPIRES_IN | Tempo de expiração do token (ex: `7d`, `1h`) |
 
 ---
 
@@ -110,6 +121,9 @@ APIdeLivros/
 │   │       ├── book.model.js
 │   │       └── book.route.js
 │   │
+│   ├── middlewares/
+│   │   └── auth.js
+│   │
 │   ├── utils/
 │   │   └── safeUser.js
 │   │
@@ -129,9 +143,9 @@ APIdeLivros/
 | firstName | String | Sim |
 | lastName | String | Sim |
 | email | String | Sim |
-| password | String | Sim |
+| password | String (hash) | Sim |
 
-Exemplo:
+Exemplo (requisição):
 
 ```json
 {
@@ -141,6 +155,8 @@ Exemplo:
     "password":"12345678"
 }
 ```
+
+> A senha é armazenada como hash (bcrypt), nunca em texto puro.
 
 ---
 
@@ -155,19 +171,19 @@ Exemplo:
 | paginas | Number | Sim |
 | lido | Boolean | Não |
 | nota | Number | Não |
-| userId | ObjectId | Sim |
+| userId | ObjectId | Sim (obtido do token) |
 
 Exemplo:
 
 ```json
 {
-    "titulo":"Clean Code",
-    "autor":"Robert C. Martin",
-    "genero":"Programação",
-    "ano":2008,
-    "paginas":464,
-    "lido":true,
-    "nota":10
+    "title":"Clean Code",
+    "author":"Robert C. Martin",
+    "bookGenre":"Programação",
+    "year":2008,
+    "pages":464,
+    "read":true,
+    "score":10
 }
 ```
 
@@ -177,10 +193,58 @@ Exemplo:
 
 A utilização da API segue os seguintes passos:
 
-1. Criar um usuário.
-2. Salvar o **ID** retornado.
-3. Utilizar esse ID para cadastrar livros.
-4. Consultar, atualizar ou remover apenas os livros pertencentes ao usuário.
+1. Criar um usuário (`POST /api/user`).
+2. Fazer login (`POST /api/user/login`) e obter o **token JWT**.
+3. Enviar o token no header `Authorization` em todas as requisições protegidas.
+4. Cadastrar, consultar, atualizar ou remover livros — o `userId` é extraído automaticamente do token, sem precisar informá-lo na URL.
+
+---
+
+# Autenticação
+
+A API utiliza **JSON Web Token (JWT)** para autenticação. O fluxo funciona assim:
+
+1. O usuário faz login com `email` e `password`.
+2. O servidor valida as credenciais (comparando o hash da senha com bcrypt).
+3. Se válidas, o servidor gera um token JWT contendo o `id` do usuário, assinado com `JWT_SECRET`.
+4. O cliente deve enviar esse token em todas as rotas protegidas, no header:
+
+```
+Authorization: Bearer <token>
+```
+
+5. Um middleware (`src/middlewares/auth.js`) intercepta a requisição, valida o token e injeta o `userId` autenticado em `req.userId`.
+6. As rotas de livro usam `req.userId` (e não mais um `:userId` vindo da URL), garantindo que cada usuário só acesse os próprios livros.
+
+### Bibliotecas utilizadas
+
+| Biblioteca | Finalidade |
+|------------|------------|
+| `jsonwebtoken` | Geração e verificação dos tokens JWT |
+| `bcryptjs` | Hash e comparação segura de senhas |
+
+### Exemplo de middleware
+
+```js
+const jwt = require("jsonwebtoken");
+
+function auth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ message: "Token não fornecido" });
+
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.userId = decoded.id;
+    next();
+  } catch {
+    return res.status(401).json({ message: "Token inválido" });
+  }
+}
+
+module.exports = auth;
+```
 
 ---
 
@@ -192,12 +256,13 @@ Base URL:
 /api/user
 ```
 
-| Método | Rota | Descrição |
-|---------|------|-----------|
-| POST | / | Cria um usuário |
-| GET | /:id | Busca um usuário |
-| PATCH | /:id | Atualiza um usuário |
-| DELETE | /:id | Remove um usuário |
+| Método | Rota | Protegida | Descrição |
+|---------|------|:---:|-----------|
+| POST | / | Não | Cria um usuário |
+| POST | /login | Não | Autentica o usuário e retorna o token JWT |
+| GET | /:id | Sim | Busca um usuário |
+| PATCH | /:id | Sim | Atualiza um usuário |
+| DELETE | /:id | Sim | Remove um usuário |
 
 ### POST /api/user
 
@@ -224,6 +289,23 @@ Resposta:
 }
 ```
 
+### POST /api/user/login
+
+```json
+{
+    "email":"matheus@email.com",
+    "password":"12345678"
+}
+```
+
+Resposta:
+
+```json
+{
+    "token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
 ---
 
 # Rotas — Livros
@@ -234,15 +316,25 @@ Base URL:
 /api/book
 ```
 
+> Todas as rotas abaixo exigem o header `Authorization: Bearer <token>`.
+
 | Método | Rota | Descrição |
 |---------|------|-----------|
-| POST | /:userId | Cadastra um livro |
-| GET | /:userId | Lista os livros do usuário |
-| GET | /:userId/:bookId | Busca um livro |
-| PATCH | /:userId/:bookId | Atualiza um livro |
-| DELETE | /:userId/:bookId | Remove um livro |
+| POST | / | Cadastra um livro para o usuário autenticado |
+| GET | / | Lista os livros do usuário autenticado |
+| GET | /:bookId | Busca um livro do usuário autenticado |
+| PATCH | /:bookId | Atualiza um livro do usuário autenticado |
+| DELETE | /:bookId | Remove um livro do usuário autenticado |
 
-### POST /api/book/:userId
+### POST /api/book
+
+Header:
+
+```
+Authorization: Bearer <token>
+```
+
+Body:
 
 ```json
 {
@@ -269,6 +361,22 @@ Resposta:
 
 ---
 
+# Formato de erros de validação
+
+```json
+{
+    "message":"Dados inválidos",
+    "errors":[
+        {
+            "field":"email",
+            "message":"E-mail inválido"
+        }
+    ]
+}
+```
+
+---
+
 # Códigos de resposta
 
 | Código | Significado |
@@ -276,11 +384,12 @@ Resposta:
 | 200 | Sucesso |
 | 201 | Recurso criado |
 | 400 | Dados inválidos |
+| 401 | Não autenticado / token inválido ou ausente |
 | 404 | Recurso não encontrado |
 | 500 | Erro interno do servidor |
 
 ---
 
-## Autor
+# Licença
 
-Projeto desenvolvido para fins de estudo utilizando **Node.js**, **Express** e **MongoDB**.
+Projeto desenvolvido para fins de estudo utilizando **Node.js**, **Express**, **MongoDB** e **JWT**.
