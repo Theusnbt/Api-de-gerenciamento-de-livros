@@ -13,17 +13,20 @@ Cada usuário possui sua própria coleção de livros. Antes de cadastrar um liv
 
 # Sumário
 
-- Tecnologias
-- Pré-requisitos
-- Instalação
-- Variáveis de ambiente
-- Executando o projeto
-- Estrutura do projeto
-- Modelos de dados
-- Fluxo de utilização
-- Rotas — Usuários
-- Rotas — Livros
-- Códigos de resposta
+- [Tecnologias](#tecnologias)
+- [Pré-requisitos](#pré-requisitos)
+- [Instalação](#instalação)
+- [Variáveis de ambiente](#variáveis-de-ambiente)
+- [Executando o projeto](#executando-o-projeto)
+- [Estrutura do projeto](#estrutura-do-projeto)
+- [Modelos de dados](#modelos-de-dados)
+- [Autenticação](#autenticação)
+- [Rotas — Usuários](#rotas--usuários-users)
+- [Rotas — Tarefas](#rotas--tarefas-tarefas)
+- [Rotas — Administração](#rotas--administração-adm)
+- [Formato de erros de validação](#formato-de-erros-de-validação)
+- [Códigos de resposta](#códigos-de-resposta)
+- [Licença](#licença)
 
 ---
 
