@@ -1,12 +1,12 @@
 import searchModel from "./search.model.js";
 import app from "../../app.js";
 import jwt from "jsonwebtoken";
-import authMiddleware from "../../middleware/auth.middleware.js";
+import safeBook from "../../utils/safeBook.js";
 
 class searchController{
     async create(req, res){
         try{
-            const { title, author } = req.params;
+            const { title, author } = req.body;
 
             const bookExist = await searchModel.findOne({
                 title,
@@ -14,9 +14,10 @@ class searchController{
                 user: req.user.id
             });
 
+
             if(bookExist)
-                return res.status(409).json({
-                    message:"Book already exist "
+                return res.status(400).json({
+                    message:"Book already exist"
                 });
 
             const search = await searchModel.create({
@@ -38,13 +39,14 @@ class searchController{
     async readAll(req, res){
         try{
             const search = await searchModel.find({ 
-                id:_id,
                 user: req.user.id
             });
 
-            res.status(201).json({
+            const bookAll = safeBook(search);
+
+            res.status(200).json({
                 message: "Book finded",
-                search: search
+                search: bookAll
             });
         }
         catch(error){
@@ -64,6 +66,13 @@ class searchController{
                 return res.status(404).json({
                     message:"Book not found"
                 });
+
+                const bookAll = safeBook(search);
+
+            res.status(200).json({ 
+                message: "Book found", 
+                search: bookAll 
+            });
         }
         catch(error){
             console.log(error);
@@ -75,8 +84,11 @@ class searchController{
 
         const search = await searchModel.findByIdAndUpdate(id, req.body, { returnDocument: "after" });
 
+        const bookAll = safeBook(search);
+
         res.status(200).json({
-            message: "Book successfully updated"
+            message: "Book successfully updated",
+            search: bookAll
         });
     }
     async delete(req, res){

@@ -1,4 +1,4 @@
-import Jwt from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import express from "express";
 
 function auth(req, res, next){
@@ -12,7 +12,7 @@ function auth(req, res, next){
     const token = authHeader.split(" ")[1];
 
     try{
-        const payload = Jwt.verify(
+        const payload = jwt.verify(
             token,
             process.env.JWT_SECRET
         );

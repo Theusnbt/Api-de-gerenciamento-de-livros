@@ -106,30 +106,33 @@ Servidor iniciado na porta **3939**.
 ```
 APIdeLivros/
 │
+├── node_modules/
+│
 ├── src/
 │   ├── database/
 │   │   └── db.js
 │   │
 │   ├── features/
-│   │   ├── user/
-│   │   │   ├── user.controller.js
-│   │   │   ├── user.model.js
-│   │   │   └── user.route.js
-│   │   │
-│   │   └── book/
-│   │       ├── book.controller.js
-│   │       ├── book.model.js
-│   │       └── book.route.js
+│   │   ├── search/
+│   │   └── user/
 │   │
-│   ├── middlewares/
-│   │   └── auth.js
+│   ├── middleware/
+│   │   └── auth.middleware.js
 │   │
 │   ├── utils/
+│   │   ├── safeBook.js
 │   │   └── safeUser.js
 │   │
 │   ├── app.js
 │   ├── index.js
 │   └── index.route.js
+│
+├── .env
+├── .gitignore
+├── LICENSE
+├── package-lock.json
+├── package.json
+└── README.md
 ```
 
 ---
@@ -213,7 +216,7 @@ A API utiliza **JSON Web Token (JWT)** para autenticação. O fluxo funciona ass
 Authorization: Bearer <token>
 ```
 
-5. Um middleware (`src/middlewares/auth.js`) intercepta a requisição, valida o token e injeta o `userId` autenticado em `req.userId`.
+5. Um middleware (`src/middleware/auth.middleware.js`) intercepta a requisição, valida o token e injeta o `userId` autenticado em `req.userId`.
 6. As rotas de livro usam `req.userId` (e não mais um `:userId` vindo da URL), garantindo que cada usuário só acesse os próprios livros.
 
 ### Bibliotecas utilizadas

@@ -7,7 +7,12 @@ import bcrypt from "bcrypt";
 class UserController{
     async create(req, res){
         try{
-            const { password } = req.body;
+            const { password, email, firstName, lastName } = req.body;
+
+            if(!password || !email)
+                return res.status(400).json({
+                    message: "Credencial error"
+                });
 
             const hash = await bcrypt.hash(password, 10);
 
@@ -17,8 +22,14 @@ class UserController{
             });
             const userSafe = safeUser(user);
 
+            if(!user)
+                return res.status(400).json({
+                    message: "Credencial error"
+                });
+    
+
             res.status(201).json({
-                message: "Usuário criado", 
+                message: "User created",
                 user: userSafe
             });
         }
@@ -34,20 +45,15 @@ class UserController{
 
             const user = await UserModel.findOne({ email });
 
-            if(!user)
-                return res.status(404).json({ 
-                    message: "User not found"
-                });
-
             const senhaCorreta = await bcrypt.compare(
                 password,
                 user.password
             );
 
 
-            if(!senhaCorreta)
+            if(!user ||!senhaCorreta)
                 return res.status(401).json({
-                  message: "Senha incorreta"
+                  message: "Credencial error"
             });
 
             const token = jwt.sign(
@@ -62,7 +68,7 @@ class UserController{
             );
 
             res.status(200).json({
-                messaeg: "Successfully logged in",
+                message: "Successfully logged in",
                 token
             });
         }
@@ -79,6 +85,12 @@ class UserController{
             const id = req.params.id;
 
             const user = await UserModel.findById(id);
+
+            if(!user)
+                return res.status(404).json({
+                    message: "User not found"
+                });
+
             const userSafe = safeUser(user);
 
             res.status(200).json({
